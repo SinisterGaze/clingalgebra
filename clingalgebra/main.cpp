@@ -71,12 +71,12 @@ void test_time()
 	printf("average time: %.2f ms\n", avg);
 }
 
-void test_mult()
+void test_naive_vs_thread()
 {
 	srand(time(NULL));
 	for (int rep = 0; rep < 10; rep++)
 	{
-		int N = 700;
+		int N = 600;
 		Matrixf A(N, N);
 		Matrixf B(N, N);
 		for (int i = 0; i < N; i++)
@@ -94,11 +94,13 @@ void test_mult()
 		printf("time naive: %lld ms\n", elapsed);
 
 		start = std::chrono::steady_clock::now();
-		Matrixf D = A * B;
+		Matrixf D = Matrixf::_thread_mult(A, B);
 		end = std::chrono::steady_clock::now();
 		elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 		printf("time threaded: %lld ms\n", elapsed);
 
+		//print_matrix(C);
+		//print_matrix(D);
 		cout << (C == D) << endl;
 	}
 }
@@ -109,8 +111,33 @@ void test_thread()
 	for (int rep = 0; rep < 30; rep++)
 	{
 		int N = 500;
-		int R = 1500;
-		int M = 750;
+		Matrixf A(N, N);
+		Matrixf B(N, N);
+		for (int i = 0; i < N; i++)
+		{
+			for (int j = 0; j < N; j++)
+			{
+				A(i, j) = (float)(rand() % 50 - 25);
+				B(i, j) = (float)(rand() % 50 - 25);
+			}
+		}
+
+		auto start = std::chrono::steady_clock::now();
+		Matrixf C = Matrixf::_thread_mult(A, B);
+		auto end = std::chrono::steady_clock::now();
+		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+		printf("time threaded mult: %lld ms\n", elapsed);
+	}
+}
+
+void test_blocking_vs_naive()
+{
+	srand(time(NULL));
+	for (int rep = 0; rep < 10; rep++)
+	{
+		int N = 500;
+		int R = 800;
+		int M = 600;
 		Matrixf A(N, R);
 		Matrixf B(R, M);
 		for (int i = 0; i < N; i++)
@@ -118,7 +145,6 @@ void test_thread()
 			for (int j = 0; j < R; j++)
 			{
 				A(i, j) = (float)(rand() % 50 - 25);
-
 			}
 		}
 		for (int i = 0; i < R; i++)
@@ -128,18 +154,72 @@ void test_thread()
 				B(i, j) = (float)(rand() % 50 - 25);
 			}
 		}
+
+		auto start = std::chrono::steady_clock::now();
+		Matrixf C = Matrixf::_naive_mult(A, B);
+		auto end = std::chrono::steady_clock::now();
+		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+		printf("naive mult: %lld ms\n", elapsed);
+
+		start = std::chrono::steady_clock::now();
+		Matrixf D = Matrixf::_fast_mult(A, B);
+		end = std::chrono::steady_clock::now();
+		elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+		printf("cache blocked mult: %lld ms\n", elapsed);
+
+		cout << (C == D) << "\n";
+	}
+}
+
+void test_thread_vs_threadcache()
+{
+	srand(time(NULL));
+	for (int rep = 0; rep < 30; rep++)
+	{
+		int N = 1000;
+		Matrixf A(N, N);
+		Matrixf B(N, N);
+		for (int i = 0; i < N; i++)
+		{
+			for (int j = 0; j < N; j++)
+			{
+				A(i, j) = (float)(rand() % 50 - 25);
+				B(i, j) = (float)(rand() % 50 - 25);
+			}
+		}
+		printf("N = %d\n", N);
 		auto start = std::chrono::steady_clock::now();
 		Matrixf C = Matrixf::_thread_mult(A, B);
 		auto end = std::chrono::steady_clock::now();
 		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-		printf("time naive: %lld ms\n", elapsed);
+		printf("time threaded: %lld ms\n", elapsed);
+
+		start = std::chrono::steady_clock::now();
+		Matrixf D = Matrixf::_thread_mult_cached(A, B);
+		end = std::chrono::steady_clock::now();
+		elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+		printf("time threaded + cached: %lld ms\n", elapsed);
+
 	}
 }
 
-
-
 int main()
 {
-	test_mult();
+
+	int N = 1000;
+	Matrixf A(N, N);
+	Matrixf B(N, N);
+	for (int i = 0; i < N; i++)
+	{
+		for (int j = 0; j < N; j++)
+		{
+			A(i, j) = (float)(rand() % 50 - 25);
+			B(i, j) = (float)(rand() % 50 - 25);
+		}
+	}
+
+	Matrixf C = A * B;
+
+
 	return 0;
 }
