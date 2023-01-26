@@ -108,9 +108,9 @@ void test_naive_vs_thread()
 void test_thread()
 {
 	srand(time(NULL));
-	for (int rep = 0; rep < 30; rep++)
+	for (int rep = 0; rep < 100; rep++)
 	{
-		int N = 500;
+		int N = 1000;
 		Matrixf A(N, N);
 		Matrixf B(N, N);
 		for (int i = 0; i < N; i++)
@@ -123,7 +123,7 @@ void test_thread()
 		}
 
 		auto start = std::chrono::steady_clock::now();
-		Matrixf C = Matrixf::_thread_mult(A, B);
+		Matrixf C = Matrixf::_thread_mult_cached(A, B);
 		auto end = std::chrono::steady_clock::now();
 		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 		printf("time threaded mult: %lld ms\n", elapsed);
@@ -176,14 +176,22 @@ void test_thread_vs_threadcache()
 	srand(time(NULL));
 	for (int rep = 0; rep < 30; rep++)
 	{
-		int N = 1000;
-		Matrixf A(N, N);
-		Matrixf B(N, N);
-		for (int i = 0; i < N; i++)
+		int M = 200;
+		int R = 800;
+		int N = 500;
+		Matrixf A(M, R);
+		Matrixf B(R, N);
+		for (int i = 0; i < M; i++)
+		{
+			for (int j = 0; j < R; j++)
+			{
+				A(i, j) = (float)(rand() % 50 - 25);
+			}
+		}
+		for (int i = 0; i < R; i++)
 		{
 			for (int j = 0; j < N; j++)
 			{
-				A(i, j) = (float)(rand() % 50 - 25);
 				B(i, j) = (float)(rand() % 50 - 25);
 			}
 		}
@@ -203,22 +211,43 @@ void test_thread_vs_threadcache()
 	}
 }
 
+void test_matrix4d_calc()
+{
+
+	for (int rep = 0; rep < 100; rep++)
+	{
+		int N = 4;
+		int C = 1000000;
+		Matrixf T(N, N);
+		Matrixf points(N, C);
+
+		for (int i = 0; i < N; i++)
+		{
+			for (int j = 0; j < N; j++)
+			{
+				T(i, j) = (float)(rand() % 50 - 25);
+			}
+		}
+		for (int i = 0; i < N; i++)
+		{
+			for (int j = 0; j < C; j++)
+			{
+				points(i, j) = (float)(rand() % 50 - 25);
+			}
+		}
+
+		auto start = std::chrono::steady_clock::now();
+		Matrixf newpoints = T * points;
+		auto end = std::chrono::steady_clock::now();
+		auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+		printf("time: %lld ms\n", elapsed);
+	}
+}
+
 int main()
 {
 
-	int N = 1000;
-	Matrixf A(N, N);
-	Matrixf B(N, N);
-	for (int i = 0; i < N; i++)
-	{
-		for (int j = 0; j < N; j++)
-		{
-			A(i, j) = (float)(rand() % 50 - 25);
-			B(i, j) = (float)(rand() % 50 - 25);
-		}
-	}
-
-	Matrixf C = A * B;
+	test_matrix4d_calc();
 
 
 	return 0;

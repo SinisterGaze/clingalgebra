@@ -61,6 +61,10 @@ protected:
 	T* data_;
 };
 
+
+
+
+
 template <class T>
 unsigned Matrix<T>::rows() const { return rows_; }
 
@@ -205,9 +209,6 @@ Matrix<T> Matrix<T>::operator * (const Matrix& rhs)
 	unsigned r = rows_;
 	unsigned c = rhs.cols_;
 
-	Matrix result(r, c);
-	std::fill(result.data_, result.data_ + r * c, (T)0);
-
 	// threading seems to overtake in performance when n ~ 8 * threads
 	if (r * c < 8 * 8 * NTHREADS * NTHREADS)
 		return _naive_mult(*this, rhs);
@@ -216,9 +217,9 @@ Matrix<T> Matrix<T>::operator * (const Matrix& rhs)
 	else
 	{
 		if (r * c < NTHREADS * CACHE_BLOCK * CACHE_BLOCK)
-			return _thread_mult_cached(*this, rhs);
-		else
 			return _thread_mult(*this, rhs);
+		else
+			return _thread_mult_cached(*this, rhs);
 	}
 
 }
@@ -303,8 +304,11 @@ inline Matrix<T> Matrix<T>::_thread_mult(const Matrix& A, const Matrix& B)
 	Matrix result(r, c);
 	std::fill(result.data_, result.data_ + r * c, (T)0);
 
-	unsigned rblock = r / 5;
-	unsigned cblock = c / 5;
+	unsigned rowdiv = (unsigned)std::round(std::sqrt(NTHREADS * (float)r / (float)c));
+	rowdiv = clingalg::clamp((int)rowdiv, 1, NTHREADS);
+	unsigned coldiv = NTHREADS / rowdiv;
+	unsigned rblock = r / rowdiv;
+	unsigned cblock = c / coldiv;
 	rblock = std::max((int)rblock, 1);
 	cblock = std::max((int)cblock, 1);
 
@@ -342,8 +346,11 @@ inline Matrix<T> Matrix<T>::_thread_mult_cached(const Matrix& A, const Matrix& B
 	Matrix result(r, c);
 	std::fill(result.data_, result.data_ + r * c, (T)0);
 
-	unsigned rblock = r / ((unsigned)std::round(std::sqrt(NTHREADS * (float)r / (float)c)));
-	unsigned cblock = c / ((unsigned)std::round(std::sqrt(NTHREADS * (float)c / (float)r)));
+	unsigned rowdiv = (unsigned)std::round(std::sqrt(NTHREADS * (float)r / (float)c));
+	rowdiv = clingalg::clamp((int)rowdiv, 1, NTHREADS);
+	unsigned coldiv = NTHREADS / rowdiv;
+	unsigned rblock = r / rowdiv;
+	unsigned cblock = c / coldiv;
 	rblock = std::max((int)rblock, 1);
 	cblock = std::max((int)cblock, 1);
 
