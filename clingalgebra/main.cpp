@@ -44,7 +44,6 @@ using namespace std;
 
 void test_time()
 {
-	srand(time(NULL));
 	int N = 90 * 4;
 	const int nreps = 10;
 	int times[nreps];
@@ -73,7 +72,6 @@ void test_time()
 
 void test_naive_vs_thread()
 {
-	srand(time(NULL));
 	for (int rep = 0; rep < 10; rep++)
 	{
 		int N = 600;
@@ -107,7 +105,6 @@ void test_naive_vs_thread()
 
 void test_thread()
 {
-	srand(time(NULL));
 	for (int rep = 0; rep < 100; rep++)
 	{
 		int N = 1000;
@@ -132,7 +129,6 @@ void test_thread()
 
 void test_blocking_vs_naive()
 {
-	srand(time(NULL));
 	for (int rep = 0; rep < 10; rep++)
 	{
 		int N = 500;
@@ -173,7 +169,6 @@ void test_blocking_vs_naive()
 
 void test_thread_vs_threadcache()
 {
-	srand(time(NULL));
 	for (int rep = 0; rep < 30; rep++)
 	{
 		int M = 200;
@@ -217,7 +212,7 @@ void test_matrix4d_calc()
 	for (int rep = 0; rep < 100; rep++)
 	{
 		int N = 4;
-		int C = 1000000;
+		int C = 1'000'000;
 		Matrixf T(N, N);
 		Matrixf points(N, C);
 
@@ -244,10 +239,34 @@ void test_matrix4d_calc()
 	}
 }
 
+void test_stochastic()
+{
+	int N = 10;
+	Matrixf A(N, N);
+	for (int i = 0; i < N; i++)
+	{
+		Matrixf C(N, N);
+		float sum = 0;
+		for (int j = 0; j < N; j++)
+		{
+			float val = (float)(rand() % 50 - 25);
+			C(j, i) = val;
+			sum += val;
+		}
+		A += C / sum;
+	}
+	print_matrix(A);
+	for (int i = 0; i < 10; i++)
+	{
+		A *= A;
+		print_matrix(A);
+	}
+}
+
 int main()
 {
-
-	test_matrix4d_calc();
+	srand((unsigned)time(NULL));
+	test_stochastic();
 
 
 	return 0;

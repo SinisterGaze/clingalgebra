@@ -40,45 +40,45 @@ public:
 	friend std::ostream& operator << (std::ostream& o, const Complex& rhs) { o << rhs.a << "+" << rhs.b << "i"; return o; }
 };
 
-template<class T> inline Complex<T> operator * (const T& lhs, const Complex<T> rhs) {
+template<class T> inline Complex<T> operator * (const T& lhs, const Complex<T>& rhs) {
 	return Complex<T>((T)(lhs * rhs.a), (T)(lhs * rhs.b));
 }
-template<class T> inline Complex<T> operator * (const int& lhs, const Complex<T> rhs)
+template<class T> inline Complex<T> operator * (const int& lhs, const Complex<T>& rhs)
 {
 	return Complex<T>((T)(lhs * rhs.a), (T)(lhs * rhs.b));
 }
-template<class T> inline Complex<T> operator * (const float& lhs, const Complex<T> rhs)
+template<class T> inline Complex<T> operator * (const float& lhs, const Complex<T>& rhs)
 {
 	return Complex<T>((T)(lhs * rhs.a), (T)(lhs * rhs.b));
 }
-template<class T> inline Complex<T> operator * (const double& lhs, const Complex<T> rhs)
+template<class T> inline Complex<T> operator * (const double& lhs, const Complex<T>& rhs)
 {
 	return Complex<T>((T)(lhs * rhs.a), (T)(lhs * rhs.b));
 }
 
 
-template<class T> inline Complex<T> operator * (const Complex<T> lhs, const T& rhs) {
+template<class T> inline Complex<T> operator * (const Complex<T>& lhs, const T& rhs) {
 	return Complex<T>((T)(lhs.a * rhs), (T)(lhs.b * rhs));
 }
-template<class T> inline Complex<T> operator * (const Complex<T> lhs, const int& rhs) {
+template<class T> inline Complex<T> operator * (const Complex<T>& lhs, const int& rhs) {
 	return Complex<T>((T)(lhs.a * rhs), (T)(lhs.b * rhs));
 }
-template<class T> inline Complex<T> operator * (const Complex<T> lhs, const float& rhs) {
+template<class T> inline Complex<T> operator * (const Complex<T>& lhs, const float& rhs) {
 	return Complex<T>((T)(lhs.a * rhs), (T)(lhs.b * rhs));
 }
-template<class T> inline Complex<T> operator * (const Complex<T> lhs, const double& rhs) {
+template<class T> inline Complex<T> operator * (const Complex<T>& lhs, const double& rhs) {
 	return Complex<T>((T)(lhs.a * rhs), (T)(lhs.b * rhs));
 }
-template<class T> inline Complex<T> operator / (const Complex<T> lhs, const T& rhs) {
+template<class T> inline Complex<T> operator / (const Complex<T>& lhs, const T& rhs) {
 	return Complex<T>((T)(lhs.a / rhs), (T)(lhs.b / rhs));
 }
-template<class T> inline Complex<T> operator / (const Complex<T> lhs, const int& rhs) {
+template<class T> inline Complex<T> operator / (const Complex<T>& lhs, const int& rhs) {
 	return Complex<T>((T)(lhs.a / rhs), (T)(lhs.b / rhs));
 }
-template<class T> inline Complex<T> operator / (const Complex<T> lhs, const float& rhs) {
+template<class T> inline Complex<T> operator / (const Complex<T>& lhs, const float& rhs) {
 	return Complex<T>((T)(lhs.a / rhs), (T)(lhs.b / rhs));
 }
-template<class T> inline Complex<T> operator / (const Complex<T> lhs, const double& rhs) {
+template<class T> inline Complex<T> operator / (const Complex<T>& lhs, const double& rhs) {
 	return Complex<T>((T)(lhs.a / rhs), (T)(lhs.b / rhs));
 }
 

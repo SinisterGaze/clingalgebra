@@ -15,12 +15,11 @@ struct dimension
 	friend std::ostream& operator << (std::ostream& o, const dimension& rhs) { o << rhs.str(); return o; }
 };
 
+
 // Template matrix class with unrestricted dimensions
-// The template class T is assumed to support the following operations:
-// +, -, *, /, +=, -=
+// The template class T is assumed to support the following operations: +, -, *, /, +=, -=
 // Elements are accessed by m(i, j) = element in i:th row, j:th column
 // The copy operator defaults to making deep copies
-
 template<class T>
 class Matrix
 {
@@ -43,12 +42,13 @@ public:
 	void operator -= (const Matrix& rhs);
 	Matrix operator + (const Matrix& rhs) const;
 	Matrix operator - (const Matrix& rhs) const;
-	Matrix operator * (const Matrix& rhs);
-	//Matrix operator * (const T& rhs);
-	//Matrix operator / (const T& rhs);
-	//void operator *= (const T& rhs);
-	//void operator /= (const T& rhs);
-	//Matrix operator -();
+	Matrix operator * (const Matrix& rhs) const;
+	void operator *= (const Matrix& rhs) const;
+	void operator *= (const T& rhs);
+	void operator /= (const T& rhs);
+	Matrix operator * (const T& rhs) const;
+	Matrix operator / (const T& rhs) const;
+	Matrix operator -() const;
 	bool operator == (const Matrix& rhs) const;
 
 	static Matrix _naive_mult(const Matrix& A, const Matrix& B);
@@ -80,7 +80,7 @@ Matrix<T>::Matrix(unsigned rows, unsigned cols)
 {
 	if (rows == 0 || cols == 0)
 		throw std::invalid_argument("Matrix constructor has 0 size");
-	data_ = new T[rows * cols];
+	data_ = new T[rows * cols]{ 0 };
 }
 
 template <class T>
@@ -201,7 +201,7 @@ Matrix<T> Matrix<T>::operator - (const Matrix& rhs) const
 }
 
 template<class T>
-Matrix<T> Matrix<T>::operator * (const Matrix& rhs)
+Matrix<T> Matrix<T>::operator * (const Matrix& rhs) const
 {
 	if (cols_ != rhs.rows_)
 		throw std::out_of_range("Matrix dimensions incompatible for multiplication");
@@ -225,6 +225,54 @@ Matrix<T> Matrix<T>::operator * (const Matrix& rhs)
 }
 
 template<class T>
+void Matrix<T>::operator*=(const Matrix& rhs) const
+{
+
+}
+
+template<class T>
+void Matrix<T>::operator *= (const T& rhs)
+{
+	for (unsigned i = 0; i < rows_ * cols_; ++i)
+		data_[i] *= rhs;
+}
+
+template<class T>
+void Matrix<T>::operator/=(const T& rhs)
+{
+	if (rhs == 0)
+		throw std::invalid_argument("Division by zero");
+
+	for (unsigned i = 0; i < rows_ * cols_; ++i)
+		data_[i] /= rhs;
+}
+
+template<class T>
+Matrix<T> Matrix<T>::operator * (const T& rhs) const
+{
+	Matrix result(*this);
+	result *= rhs;
+	return result;
+}
+
+template<class T>
+Matrix<T> Matrix<T>::operator / (const T& rhs) const
+{
+	Matrix result(*this);
+	result /= rhs;
+	return result;
+}
+
+template<class T>
+Matrix<T> Matrix<T>::operator-() const
+{
+	Matrix result(*this);
+	for (unsigned i = 0; i < cols_ * rows_; ++i)
+		result.data_[i] = -result.data_[i];
+	return result;
+}
+
+template<class T>
 inline bool Matrix<T>::operator==(const Matrix& rhs) const
 {
 	if (dim() != rhs.dim())
@@ -243,15 +291,15 @@ inline Matrix<T> Matrix<T>::_naive_mult(const Matrix& A, const Matrix& B)
 	if (A.cols_ != B.rows_)
 		throw std::out_of_range("Matrix dimensions incompatible for multiplication");
 
-	unsigned r = A.rows_;
-	unsigned c = B.cols_;
+	int r = A.rows_;
+	int c = B.cols_;
 
 	Matrix result(r, c);
 	std::fill(result.data_, result.data_ + r * c, (T)0);
 
-	for (unsigned i = 0; i < r; ++i)
-		for (unsigned k = 0; k < A.cols_; ++k)
-			for (unsigned j = 0; j < c; ++j)
+	for (int i = 0; i < r; ++i)
+		for (int k = 0; k < (int)A.cols_; ++k)
+			for (int j = 0; j < c; ++j)
 				result.data_[i * c + j] += A.data_[A.cols_ * i + k] * B.data_[B.cols_ * k + j]; //result(i, j) += A(i, k) * B(k, j);
 
 	return result;
@@ -263,15 +311,15 @@ inline Matrix<T> Matrix<T>::_fast_mult(const Matrix& A, const Matrix& B)
 	if (A.cols_ != B.rows_)
 		throw std::out_of_range("Matrix dimensions incompatible for multiplication");
 
-	unsigned r = A.rows_;
-	unsigned c = B.cols_;
+	int r = A.rows_;
+	int c = B.cols_;
 
 	Matrix result(r, c);
 	std::fill(result.data_, result.data_ + r * c, (T)0);
 
 	for (int i = 0; i < r; i += CACHE_BLOCK)
 		for (int j = 0; j < c; j += CACHE_BLOCK)
-			for (int k = 0; k < A.cols_; k += CACHE_BLOCK)
+			for (int k = 0; k < (int)A.cols_; k += CACHE_BLOCK)
 			{
 				T* res = &result.data_[i * c + j];
 				T* Amul = &A.data_[i * A.cols_ + k];
@@ -298,31 +346,31 @@ inline Matrix<T> Matrix<T>::_thread_mult(const Matrix& A, const Matrix& B)
 	if (A.cols_ != B.rows_)
 		throw std::out_of_range("Matrix dimensions incompatible for multiplication");
 
-	unsigned r = A.rows_;
-	unsigned c = B.cols_;
+	int r = A.rows_;
+	int c = B.cols_;
 
 	Matrix result(r, c);
 	std::fill(result.data_, result.data_ + r * c, (T)0);
 
-	unsigned rowdiv = (unsigned)std::round(std::sqrt(NTHREADS * (float)r / (float)c));
-	rowdiv = clingalg::clamp((int)rowdiv, 1, NTHREADS);
-	unsigned coldiv = NTHREADS / rowdiv;
-	unsigned rblock = r / rowdiv;
-	unsigned cblock = c / coldiv;
+	int rowdiv = (int)std::round(std::sqrt(NTHREADS * (float)r / (float)c));
+	rowdiv = std::clamp((int)rowdiv, 1, NTHREADS);
+	int coldiv = NTHREADS / rowdiv;
+	int rblock = r / rowdiv;
+	int cblock = c / coldiv;
 	rblock = std::max((int)rblock, 1);
 	cblock = std::max((int)cblock, 1);
 
-	auto mult_block = [&](unsigned r_idx, unsigned c_idx)
+	auto mult_block = [&](int r_idx, int c_idx)
 	{
-		for (unsigned i = r_idx; i < std::min(r_idx + rblock, r); ++i)
-			for (unsigned k = 0; k < A.cols_; k++)
-				for (unsigned j = c_idx; j < std::min(c_idx + cblock, c); ++j)
+		for (int i = r_idx; i < std::min(r_idx + rblock, r); ++i)
+			for (int k = 0; k < (int)A.cols_; k++)
+				for (int j = c_idx; j < std::min(c_idx + cblock, c); ++j)
 					result.data_[i * c + j] += A.data_[A.cols_ * i + k] * B.data_[B.cols_ * k + j];
 	};
 	std::vector<std::thread> workers;
-	for (unsigned i = 0; i < r; i += rblock)
+	for (int i = 0; i < r; i += rblock)
 	{
-		for (unsigned j = 0; j < c; j += cblock)
+		for (int j = 0; j < c; j += cblock)
 		{
 			workers.push_back(std::thread(mult_block, i, j));
 		}
@@ -340,21 +388,21 @@ inline Matrix<T> Matrix<T>::_thread_mult_cached(const Matrix& A, const Matrix& B
 	if (A.cols_ != B.rows_)
 		throw std::out_of_range("Matrix dimensions incompatible for multiplication");
 
-	unsigned r = A.rows_;
-	unsigned c = B.cols_;
+	int r = A.rows_;
+	int c = B.cols_;
 
 	Matrix result(r, c);
 	std::fill(result.data_, result.data_ + r * c, (T)0);
 
-	unsigned rowdiv = (unsigned)std::round(std::sqrt(NTHREADS * (float)r / (float)c));
-	rowdiv = clingalg::clamp((int)rowdiv, 1, NTHREADS);
-	unsigned coldiv = NTHREADS / rowdiv;
-	unsigned rblock = r / rowdiv;
-	unsigned cblock = c / coldiv;
+	int rowdiv = (unsigned)std::round(std::sqrt(NTHREADS * (float)r / (float)c));
+	rowdiv = std::clamp((int)rowdiv, 1, NTHREADS);
+	int coldiv = NTHREADS / rowdiv;
+	int rblock = r / rowdiv;
+	int cblock = c / coldiv;
 	rblock = std::max((int)rblock, 1);
 	cblock = std::max((int)cblock, 1);
 
-	auto mult_block = [&](unsigned r_idx, unsigned c_idx)
+	auto mult_block = [&](int r_idx, int c_idx)
 	{
 		int imax = std::min(rblock, r - r_idx);
 		for (int i = 0; i < imax; i += CACHE_BLOCK)
@@ -362,21 +410,21 @@ inline Matrix<T> Matrix<T>::_thread_mult_cached(const Matrix& A, const Matrix& B
 			int jmax = std::min(cblock, c - c_idx);
 			for (int j = 0; j < jmax; j += CACHE_BLOCK)
 			{
-				for (int k = 0; k < A.cols_; k += CACHE_BLOCK)
+				for (int k = 0; k < (int)A.cols_; k += CACHE_BLOCK)
 				{
 					T* res = &result.data_[(i + r_idx) * c + (j + c_idx)];
 					T* Amul = &A.data_[(i + r_idx) * A.cols_ + k];
 					int i2max = (CACHE_BLOCK < rblock - i) ? CACHE_BLOCK : rblock - i;
 					i2max = std::min(i2max, (int)r - (int)r_idx - (int)i);
-					for (unsigned i2 = 0; i2 < i2max; i2++, res += c, Amul += A.cols_)
+					for (int i2 = 0; i2 < i2max; i2++, res += c, Amul += A.cols_)
 					{
 						T* Bmul = &B.data_[k * B.cols_ + (j + c_idx)];
 						int k2max = (CACHE_BLOCK < A.cols_ - k) ? CACHE_BLOCK : A.cols_ - k;
-						for (unsigned k2 = 0; k2 < k2max; k2++, Bmul += B.cols_)
+						for (int k2 = 0; k2 < k2max; k2++, Bmul += B.cols_)
 						{
 							int j2max = (CACHE_BLOCK < cblock - j) ? CACHE_BLOCK : cblock - j;
 							j2max = std::min(j2max, (int)c - (int)c_idx - (int)j);
-							for (unsigned j2 = 0; j2 < j2max; j2++)
+							for (int j2 = 0; j2 < j2max; j2++)
 								res[j2] += Amul[k2] * Bmul[j2];
 						}
 					}
@@ -385,9 +433,9 @@ inline Matrix<T> Matrix<T>::_thread_mult_cached(const Matrix& A, const Matrix& B
 		}
 	};
 	std::vector<std::thread> workers;
-	for (unsigned i = 0; i < r; i += rblock)
+	for (int i = 0; i < r; i += rblock)
 	{
-		for (unsigned j = 0; j < c; j += cblock)
+		for (int j = 0; j < c; j += cblock)
 		{
 			workers.push_back(std::thread(mult_block, i, j));
 		}
@@ -398,9 +446,26 @@ inline Matrix<T> Matrix<T>::_thread_mult_cached(const Matrix& A, const Matrix& B
 	return result;
 }
 
-
-
-
+template <class T> Matrix<T> operator * (const T& lhs, const Matrix<T>& rhs) {
+	Matrix result(rhs);
+	result *= (T)lhs;
+	return result;
+}
+template <class T> Matrix<T> operator * (const int& lhs, const Matrix<T>& rhs) {
+	Matrix result(rhs);
+	result *= (T)lhs;
+	return result;
+}
+template <class T> Matrix<T> operator * (const float& lhs, const Matrix<T>& rhs) {
+	Matrix result(rhs);
+	result *= (T)lhs;
+	return result;
+}
+template <class T> Matrix<T> operator * (const double& lhs, const Matrix<T>& rhs) {
+	Matrix result(rhs);
+	result *= (T)lhs;
+	return result;
+}
 
 
 typedef Matrix<float> Matrixf;
