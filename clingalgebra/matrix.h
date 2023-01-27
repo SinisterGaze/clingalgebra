@@ -43,7 +43,7 @@ public:
 	Matrix operator + (const Matrix& rhs) const;
 	Matrix operator - (const Matrix& rhs) const;
 	Matrix operator * (const Matrix& rhs) const;
-	void operator *= (const Matrix& rhs) const;
+	void operator *= (const Matrix& rhs);
 	void operator *= (const T& rhs);
 	void operator /= (const T& rhs);
 	Matrix operator * (const T& rhs) const;
@@ -225,9 +225,9 @@ Matrix<T> Matrix<T>::operator * (const Matrix& rhs) const
 }
 
 template<class T>
-void Matrix<T>::operator*=(const Matrix& rhs) const
+void Matrix<T>::operator*=(const Matrix& rhs)
 {
-
+	*this = *this * rhs;
 }
 
 template<class T>
